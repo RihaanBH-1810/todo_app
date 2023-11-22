@@ -1,4 +1,5 @@
 # todo_list/todo_app/views.py
+from django.utils import timezone
 from django.shortcuts import redirect
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from .models import ToDoList, ToDoItem
@@ -9,6 +10,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.http import  Http404,HttpResponseForbidden
+
+import datetime
 
 
 
@@ -50,8 +53,8 @@ class ListListView(LoginRequiredMixin,ListView):
 class ItemListView(LoginRequiredMixin,ListView):
     model = ToDoItem
     template_name = "todo_app/todo_list.html"
-
-
+    # print(f"called on:{datetime.datetime.now()} duedate = {ToDoItem.due_date}")
+    
     def get_queryset(self):
         return ToDoItem.objects.filter(todo_list_id=self.kwargs["list_id"])
 
@@ -60,6 +63,14 @@ class ItemListView(LoginRequiredMixin,ListView):
         context = super().get_context_data()
         # context["todo_list"] = ToDoList.objects.get(id=self.kwargs["list_id"])
         context["todo_list"] = ToDoList.objects.get(id=self.kwargs["list_id"])
+        
+        overdue_todo_items = ToDoItem.objects.filter(
+            todo_list_id=self.kwargs["list_id"],
+            due_date__lt=timezone.now().date()
+        )
+
+        for item in overdue_todo_items:
+            item.delete()
         return context
     
 class ListCreate(LoginRequiredMixin, CreateView):
